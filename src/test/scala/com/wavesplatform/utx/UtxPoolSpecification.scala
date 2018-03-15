@@ -14,11 +14,10 @@ import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FreeSpec, Matchers}
 import scorex.account.{Address, PrivateKeyAccount, PublicKeyAccount}
 import scorex.block.Block
-import scorex.transaction.TransactionParser.TransactionType
 import scorex.transaction.ValidationError.SenderIsBlacklisted
 import scorex.transaction.assets.MassTransferTransaction.ParsedTransfer
-import scorex.transaction.assets.{MassTransferTransaction, TransferTransaction}
-import scorex.transaction.{FeeCalculator, Proofs, Transaction}
+import scorex.transaction.assets.{IssueTransaction, MassTransferTransaction, TransferTransaction}
+import scorex.transaction.{FeeCalculator, GenesisTransaction, Transaction}
 import scorex.utils.{NTP, Time}
 
 import scala.concurrent.duration._
@@ -26,12 +25,15 @@ import scala.concurrent.duration._
 class UtxPoolSpecification extends FreeSpec
   with Matchers with MockFactory with PropertyChecks with TransactionGen with NoShrink with WithDB {
 
-  private val calculator = new FeeCalculator(FeesSettings(Seq(
-    TransactionType.GenesisTransaction,
-    TransactionType.IssueTransaction,
-    TransactionType.TransferTransaction,
-    TransactionType.MassTransferTransaction
-  ).map(_.id -> List(FeeSettings("", 0))).toMap))
+  private val calculatorSettings = FeesSettings(Seq(
+    GenesisTransaction,
+    IssueTransaction,
+    TransferTransaction,
+    MassTransferTransaction
+  ).map(_.typeId.toInt -> List(FeeSettings("", 0))).toMap)
+
+  private val calculator = new FeeCalculator(calculatorSettings)
+  throw new RuntimeException(s"$calculatorSettings")
 
   private def mkState(senderAccount: Address, senderBalance: Long) = {
 
@@ -67,7 +69,7 @@ class UtxPoolSpecification extends FreeSpec
     val transfers = recipients.map(r => ParsedTransfer(r.toAddress, amount))
     val txs = for {
       fee <- chooseNum(1, amount)
-    } yield MassTransferTransaction.selfSigned(Proofs.Version, None, sender, transfers, time.getTimestamp(), fee, Array.empty[Byte]).right.get
+    } yield MassTransferTransaction.selfSigned(None, sender, transfers, time.getTimestamp(), fee, Array.empty[Byte]).right.get
     txs.label("transferWithRecipient")
   }
 

@@ -7,23 +7,22 @@ import monix.eval.Coeval
 import play.api.libs.json._
 import scorex.account.{PrivateKeyAccount, PublicKeyAccount}
 
-import scorex.transaction.TransactionParser.{KeyLength, TransactionType}
+import scorex.transaction.TransactionParser.KeyLength
 
 import scala.util.{Failure, Success, Try}
 
-case class DataTransaction private(version: Byte,
-                                   sender: PublicKeyAccount,
+case class DataTransaction private(sender: PublicKeyAccount,
                                    data: List[DataEntry[_]],
                                    fee: Long,
                                    timestamp: Long,
                                    proofs: Proofs) extends ProvenTransaction with FastHashId {
-  override val transactionType: TransactionType.Value = TransactionType.DataTransaction
 
+  override val builder: TransactionBuilder = DataTransaction
   override val assetFee: (Option[AssetId], Long) = (None, fee)
 
   override val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce {
     Bytes.concat(
-      Array(transactionType.id.toByte),
+      Array(builder.typeId),
       Array(version),
       sender.publicKey,
       Shorts.toByteArray(data.size.toShort),
@@ -43,8 +42,13 @@ case class DataTransaction private(version: Byte,
   override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(bodyBytes(), proofs.bytes()))
 }
 
-object DataTransaction {
-  val Version: Byte = 1
+object DataTransaction extends TransactionBuilder {
+
+  override type TransactionT = DataTransaction
+
+  override val typeId: Byte = 12
+  override val version: Byte = 1
+
   val MaxEntryCount: Byte = Byte.MaxValue
 
   def parseTail(bytes: Array[Byte]): Try[DataTransaction] = Try {
@@ -68,29 +72,25 @@ object DataTransaction {
     txEi.fold(left => Failure(new Exception(left.toString)), right => Success(right))
   }.flatten
 
-  def create(version: Byte,
-             sender: PublicKeyAccount,
+  def create(sender: PublicKeyAccount,
              data: List[DataEntry[_]],
              feeAmount: Long,
              timestamp: Long,
              proofs: Proofs): Either[ValidationError, DataTransaction] = {
-    if (version != 1) {
-      Left(ValidationError.UnsupportedVersion(version))
-    } else if (data.lengthCompare(MaxEntryCount) > 0 || data.exists(! _.valid)) {
+    if (data.lengthCompare(MaxEntryCount) > 0 || data.exists(! _.valid)) {
       Left(ValidationError.TooBigArray)
     } else if (feeAmount <= 0) {
       Left(ValidationError.InsufficientFee)
     } else {
-      Right(DataTransaction(version, sender, data, feeAmount, timestamp, proofs))
+      Right(DataTransaction(sender, data, feeAmount, timestamp, proofs))
     }
   }
 
-  def selfSigned(version: Byte,
-                 sender: PrivateKeyAccount,
+  def selfSigned(sender: PrivateKeyAccount,
                  data: List[DataEntry[_]],
                  feeAmount: Long,
                  timestamp: Long): Either[ValidationError, DataTransaction] = {
-    create(version, sender, data, feeAmount, timestamp, Proofs.empty).right.map { unsigned =>
+    create(sender, data, feeAmount, timestamp, Proofs.empty).right.map { unsigned =>
       unsigned.copy(proofs = Proofs.create(Seq(ByteStr(crypto.sign(sender, unsigned.bodyBytes())))).explicitGet())
     }
   }

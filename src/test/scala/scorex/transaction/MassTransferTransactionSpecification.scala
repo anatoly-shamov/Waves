@@ -1,10 +1,8 @@
 package scorex.transaction
 
 import com.wavesplatform.TransactionGen
-import org.scalacheck.Gen
 import org.scalatest._
 import org.scalatest.prop.PropertyChecks
-import scorex.transaction.TransactionParser.TransactionType
 import scorex.transaction.ValidationError.GenericError
 import scorex.transaction.assets.MassTransferTransaction.{MaxTransferCount, ParsedTransfer}
 import scorex.transaction.assets.{MassTransferTransaction, TransferTransaction}
@@ -13,7 +11,7 @@ class MassTransferTransactionSpecification extends PropSpec with PropertyChecks 
 
   property("serialization roundtrip") {
     forAll(massTransferGen) { tx: MassTransferTransaction =>
-      require(tx.bytes().head == TransactionType.MassTransferTransaction.id)
+      require(tx.bytes().head == MassTransferTransaction.typeId)
       val recovered = MassTransferTransaction.parseTail(tx.bytes().tail).get
 
       recovered.sender.address shouldEqual tx.sender.address
@@ -40,37 +38,33 @@ class MassTransferTransactionSpecification extends PropSpec with PropertyChecks 
   property("property validation") {
     import MassTransferTransaction.create
 
-    val badVersionGen = Gen.choose(MassTransferTransaction.Version + 1, Byte.MaxValue).map(_.toByte)
-    forAll(massTransferGen, badVersionGen) {
-      case (MassTransferTransaction(version, assetId, sender, transfers, timestamp, fee, attachment, proofs), badVersion) =>
-        val badVersionEi = create(badVersion, assetId, sender, transfers, timestamp, fee, attachment, proofs)
-        badVersionEi shouldBe Left(ValidationError.UnsupportedVersion(badVersion))
-
+    forAll(massTransferGen) {
+      case MassTransferTransaction(assetId, sender, transfers, timestamp, fee, attachment, proofs) =>
         val tooManyTransfers = List.fill(MaxTransferCount + 1)(ParsedTransfer(sender.toAddress, 1L))
-        val tooManyTransfersEi = create(version, assetId, sender, tooManyTransfers, timestamp, fee, attachment, proofs)
+        val tooManyTransfersEi = create(assetId, sender, tooManyTransfers, timestamp, fee, attachment, proofs)
         tooManyTransfersEi shouldBe Left(GenericError(s"Number of transfers is greater than $MaxTransferCount"))
 
         val negativeTransfer = List(ParsedTransfer(sender.toAddress, -1L))
-        val negativeTransferEi = create(version, assetId, sender, negativeTransfer, timestamp, fee, attachment, proofs)
+        val negativeTransferEi = create(assetId, sender, negativeTransfer, timestamp, fee, attachment, proofs)
         negativeTransferEi shouldBe Left(GenericError("One of the transfers has negative amount"))
 
         val oneHalf = Long.MaxValue / 2 + 1
         val overflow = List.fill(2)(ParsedTransfer(sender.toAddress, oneHalf))
-        val overflowEi = create(version, assetId, sender, overflow, timestamp, fee, attachment, proofs)
+        val overflowEi = create(assetId, sender, overflow, timestamp, fee, attachment, proofs)
         overflowEi shouldBe Left(ValidationError.OverflowError)
 
         val feeOverflow = List(ParsedTransfer(sender.toAddress, oneHalf))
-        val feeOverflowEi = create(version, assetId, sender, feeOverflow, timestamp, oneHalf, attachment, proofs)
+        val feeOverflowEi = create(assetId, sender, feeOverflow, timestamp, oneHalf, attachment, proofs)
         feeOverflowEi shouldBe Left(ValidationError.OverflowError)
 
         val longAttachment = Array.fill(TransferTransaction.MaxAttachmentSize + 1)(1: Byte)
-        val longAttachmentEi = create(version, assetId, sender, transfers, timestamp, fee, longAttachment, proofs)
+        val longAttachmentEi = create(assetId, sender, transfers, timestamp, fee, longAttachment, proofs)
         longAttachmentEi shouldBe Left(ValidationError.TooBigArray)
 
-        val noFeeEi = create(version, assetId, sender, feeOverflow, timestamp, 0, attachment, proofs)
+        val noFeeEi = create(assetId, sender, feeOverflow, timestamp, 0, attachment, proofs)
         noFeeEi shouldBe Left(ValidationError.InsufficientFee)
 
-        val negativeFeeEi = create(version, assetId, sender, feeOverflow, timestamp, -100, attachment, proofs)
+        val negativeFeeEi = create(assetId, sender, feeOverflow, timestamp, -100, attachment, proofs)
         negativeFeeEi shouldBe Left(ValidationError.InsufficientFee)
     }
   }

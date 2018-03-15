@@ -204,7 +204,7 @@ class MatcherActorSpecification
 
       expectMsgPF() {
         case GetMarketsResponse(publicKey,
-                                Seq(MarketData(`Predefined`, "Unknown", "Unknown", _, _, _), MarketData(_, "Unknown", "Unknown", _, _, _))) =>
+        Seq(MarketData(`Predefined`, "Unknown", "Unknown", _, _, _), MarketData(_, "Unknown", "Unknown", _, _, _))) =>
           publicKey shouldBe MatcherAccount.publicKey
       }
     }

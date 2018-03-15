@@ -3,7 +3,6 @@ package scorex.transaction
 import com.wavesplatform.TransactionGen
 import org.scalatest._
 import org.scalatest.prop.PropertyChecks
-import scorex.transaction.TransactionParser.TransactionType
 import scorex.transaction.lease.LeaseTransaction
 
 import scala.util.Try
@@ -11,10 +10,9 @@ import scala.util.Try
 class LeaseTransactionSpecification extends PropSpec with PropertyChecks with Matchers with TransactionGen {
 
   def parseBytes(bytes: Array[Byte]): Try[LeaseTransaction] = Try {
-    require(bytes.head == TransactionType.LeaseTransaction.id)
+    require(bytes.head == LeaseTransaction.typeId)
     LeaseTransaction.parseTail(bytes.tail).get
   }
-
 
   property("Lease transaction serialization roundtrip") {
     forAll(leaseGen) { tx: LeaseTransaction =>

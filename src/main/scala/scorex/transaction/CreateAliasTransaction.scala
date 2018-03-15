@@ -11,7 +11,6 @@ import scorex.transaction.TransactionParser._
 
 import scala.util.{Failure, Success, Try}
 
-
 case class CreateAliasTransaction private(sender: PublicKeyAccount,
                                           alias: Alias,
                                           fee: Long,
@@ -19,12 +18,11 @@ case class CreateAliasTransaction private(sender: PublicKeyAccount,
                                           signature: ByteStr)
   extends SignedTransaction {
 
-  override val transactionType: TransactionType.Value = TransactionType.CreateAliasTransaction
-
-  override val id: Coeval[AssetId] = Coeval.evalOnce(ByteStr(crypto.fastHash(transactionType.id.toByte +: alias.bytes.arr)))
+  override val builder: TransactionBuilder = CreateAliasTransaction
+  override val id: Coeval[AssetId] = Coeval.evalOnce(ByteStr(crypto.fastHash(builder.typeId +: alias.bytes.arr)))
 
   override val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(
-    Array(transactionType.id.toByte),
+    Array(builder.typeId),
     sender.publicKey,
     Deser.serializeArray(alias.bytes.arr),
     Longs.toByteArray(fee),
@@ -41,7 +39,11 @@ case class CreateAliasTransaction private(sender: PublicKeyAccount,
 
 }
 
-object CreateAliasTransaction {
+object CreateAliasTransaction extends TransactionBuilder {
+
+  override type TransactionT = CreateAliasTransaction
+  override val typeId: Byte = 10
+  override val version: Byte = 1
 
   def parseTail(bytes: Array[Byte]): Try[CreateAliasTransaction] = Try {
     val sender = PublicKeyAccount(bytes.slice(0, KeyLength))

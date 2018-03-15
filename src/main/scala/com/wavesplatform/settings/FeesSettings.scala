@@ -3,7 +3,7 @@ package com.wavesplatform.settings
 import com.google.common.base.CaseFormat
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
-import scorex.transaction.TransactionParser.TransactionType
+import scorex.transaction.TransactionParser
 
 case class FeeSettings(asset: String, fee: Long)
 
@@ -21,5 +21,5 @@ object FeesSettings {
     } yield toTxType(txTypeName) -> fees)
 
   private def toTxType(key: String): Int =
-    TransactionType.withName(s"${converter.convert(key)}Transaction").id
+    TransactionParser.builderByName(s"${converter.convert(key)}Transaction").get.typeId
 }

@@ -14,8 +14,7 @@ import scorex.transaction._
 
 import scala.util.{Failure, Success, Try}
 
-case class VersionedTransferTransaction private(version: Byte,
-                                                sender: PublicKeyAccount,
+case class VersionedTransferTransaction private(sender: PublicKeyAccount,
                                                 recipient: AddressOrAlias,
                                                 assetId: Option[AssetId],
                                                 amount: Long,
@@ -24,8 +23,8 @@ case class VersionedTransferTransaction private(version: Byte,
                                                 attachment: Array[Byte],
                                                 proofs: Proofs)
   extends ProvenTransaction with FastHashId {
-  override val transactionType: TransactionType.Value = TransactionType.VersionedTransferTransaction
 
+  override val builder: TransactionBuilder = VersionedTransferTransaction
   override val assetFee: (Option[AssetId], Long) = (None, fee)
 
   val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce {
@@ -34,7 +33,7 @@ case class VersionedTransferTransaction private(version: Byte,
     val amountBytes = Longs.toByteArray(amount)
     val feeBytes = Longs.toByteArray(fee)
 
-    Bytes.concat(Array(version),
+    Bytes.concat(Array(builder.version),
       sender.publicKey,
       assetIdBytes,
       timestampBytes,
@@ -45,19 +44,23 @@ case class VersionedTransferTransaction private(version: Byte,
   }
 
   override val json: Coeval[JsObject] = Coeval.evalOnce(jsonBase() ++ Json.obj(
-    "version" -> version,
+    "version" -> builder.version,
     "recipient" -> recipient.stringRepr,
     "assetId" -> assetId.map(_.base58),
     "amount" -> amount,
     "attachment" -> Base58.encode(attachment)
   ))
 
-  override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(transactionType.id.toByte), bodyBytes(), proofs.bytes()))
+  override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(builder.typeId), bodyBytes(), proofs.bytes()))
 
 }
 
 
-object VersionedTransferTransaction {
+object VersionedTransferTransaction extends TransactionBuilder {
+
+  override type TransactionT = VersionedTransferTransaction
+  override val typeId: Byte = 4
+  override val version: Byte = 2
 
   def parseTail(bytes: Array[Byte]): Try[VersionedTransferTransaction] = Try {
     val version = bytes(0)
@@ -72,12 +75,11 @@ object VersionedTransferTransaction {
       (recipient, recipientEnd) = recRes
       (attachment, attachEnd) = Deser.parseArraySize(bytes, recipientEnd)
       proofs <- Proofs.fromBytes(bytes.drop(attachEnd))
-      tt <- VersionedTransferTransaction.create(version, assetIdOpt.map(ByteStr(_)), sender, recipient, amount, timestamp, feeAmount, attachment, proofs)
+      tt <- VersionedTransferTransaction.create(assetIdOpt.map(ByteStr(_)), sender, recipient, amount, timestamp, feeAmount, attachment, proofs)
     } yield tt).fold(left => Failure(new Exception(left.toString)), right => Success(right))
   }.flatten
 
-  def create(version: Byte,
-             assetId: Option[AssetId],
+  def create(assetId: Option[AssetId],
              sender: PublicKeyAccount,
              recipient: AddressOrAlias,
              amount: Long,
@@ -96,19 +98,18 @@ object VersionedTransferTransaction {
     } else if (feeAmount <= 0) {
       Left(ValidationError.InsufficientFee)
     } else {
-      Right(VersionedTransferTransaction(version, sender, recipient, assetId, amount, timestamp, feeAmount, attachment, proofs))
+      Right(VersionedTransferTransaction(sender, recipient, assetId, amount, timestamp, feeAmount, attachment, proofs))
     }
   }
 
-  def selfSigned(version: Byte,
-                 assetId: Option[AssetId],
+  def selfSigned(assetId: Option[AssetId],
                  sender: PrivateKeyAccount,
                  recipient: AddressOrAlias,
                  amount: Long,
                  timestamp: Long,
                  feeAmount: Long,
                  attachment: Array[Byte]): Either[ValidationError, VersionedTransferTransaction] = {
-    create(version, assetId, sender, recipient, amount, timestamp, feeAmount, attachment, Proofs.empty).right.map { unsigned =>
+    create(assetId, sender, recipient, amount, timestamp, feeAmount, attachment, Proofs.empty).right.map { unsigned =>
       unsigned.copy(proofs = Proofs.create(Seq(ByteStr(crypto.sign(sender, unsigned.bodyBytes())))).explicitGet())
     }
   }

@@ -3,12 +3,12 @@ package scorex.transaction
 import com.wavesplatform.state2._
 import monix.eval.Coeval
 import scorex.serialization.{BytesSerializable, JsonSerializable}
-import scorex.transaction.TransactionParser.TransactionType
 
 trait Transaction extends BytesSerializable with JsonSerializable {
+  val version: Byte = 1
   val id: Coeval[ByteStr]
 
-  val transactionType: TransactionType.Value
+  val builder: TransactionBuilder
   val assetFee: (Option[AssetId], Long)
   val timestamp: Long
 
@@ -23,6 +23,8 @@ trait Transaction extends BytesSerializable with JsonSerializable {
 }
 
 object Transaction {
+
+  type Type = Byte
 
   implicit class TransactionExt(tx: Transaction) {
     def feeDiff(): Portfolio = tx.assetFee match {

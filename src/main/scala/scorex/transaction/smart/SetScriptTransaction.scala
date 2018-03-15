@@ -7,39 +7,42 @@ import monix.eval.Coeval
 import play.api.libs.json.Json
 import scorex.account._
 import scorex.serialization.Deser
-import scorex.transaction.TransactionParser.{KeyLength, TransactionType}
-import scorex.transaction.ValidationError.GenericError
 import scorex.transaction._
+import scorex.transaction.TransactionParser.KeyLength
+import scorex.transaction.ValidationError.GenericError
 
 import scala.util.{Failure, Success, Try}
 
-case class SetScriptTransaction private(version: Byte,
-                                        chainId: Byte,
+case class SetScriptTransaction private(chainId: Byte,
                                         sender: PublicKeyAccount,
                                         script: Option[Script],
                                         fee: Long,
                                         timestamp: Long,
                                         proofs: Proofs) extends ProvenTransaction with FastHashId {
 
-  val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(version),
+  override val builder: TransactionBuilder = SetScriptTransaction
+
+  val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(builder.version),
     Array(chainId),
     sender.publicKey,
     Deser.serializeOption(script)(s => Deser.serializeArray(s.bytes().arr)),
     Longs.toByteArray(fee),
     Longs.toByteArray(timestamp)))
 
-  override val transactionType = TransactionType.SetScriptTransaction
-
   override val assetFee = (None, fee)
   override val json = Coeval.evalOnce(jsonBase() ++ Json.obj(
-    "version" -> version,
+    "version" -> builder.version,
     "script" -> script.map(_.text))
   )
 
-  override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(transactionType.id.toByte), bodyBytes(), proofs.bytes()))
+  override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(builder.typeId), bodyBytes(), proofs.bytes()))
 }
 
-object SetScriptTransaction {
+object SetScriptTransaction extends TransactionBuilder  {
+
+  override type TransactionT = SetScriptTransaction
+  override val typeId: Byte = 13
+  override val version: Byte = 1
 
   private val networkByte = AddressScheme.current.chainId
 
@@ -73,7 +76,7 @@ object SetScriptTransaction {
     if (fee <= 0) {
       Left(ValidationError.InsufficientFee)
     } else {
-      Right(new SetScriptTransaction(1, networkByte, sender, script, fee, timestamp, proofs))
+      Right(new SetScriptTransaction(networkByte, sender, script, fee, timestamp, proofs))
     }
 
 

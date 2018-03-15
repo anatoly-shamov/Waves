@@ -2,7 +2,6 @@ package com.wavesplatform.state2.reader
 
 import com.wavesplatform.state2._
 import scorex.account.{Address, AddressOrAlias, Alias}
-import scorex.transaction.TransactionParser.TransactionType
 import scorex.transaction.ValidationError.AliasNotExists
 import scorex.transaction._
 import scorex.transaction.lease.LeaseTransaction
@@ -19,11 +18,10 @@ trait SnapshotStateReader {
 
   def transactionInfo(id: ByteStr): Option[(Int, Transaction)]
 
-  def addressTransactions(
-      address: Address,
-      types: Set[TransactionType.Value],
-      from: Int,
-      count: Int): Seq[(Int, Transaction)]
+  def addressTransactions(address: Address,
+                          from: Int,
+                          count: Int,
+                          filter: Set[Transaction.Type]): Seq[(Int, Transaction)]
 
   def containsTransaction(id: ByteStr): Boolean
 
@@ -74,12 +72,13 @@ object SnapshotStateReader {
       if (balances.isEmpty) 0L else balances.view.map(_.regularBalance).min
     }
 
-    def aliasesOfAddress(address: Address): Seq[Alias] =
-      s.addressTransactions(address, Set(TransactionType.CreateAliasTransaction), 0, Int.MaxValue)
+    def aliasesOfAddress(address: Address): Seq[Alias] = s
+      .addressTransactions(address, 0, Int.MaxValue, Set(CreateAliasTransaction.typeId))
       .collect { case (_, a: CreateAliasTransaction) => a.alias }
 
-    def activeLeases(address: Address): Seq[LeaseTransaction] =
-      s.addressTransactions(address, Set(TransactionType.LeaseTransaction), 0, Int.MaxValue)
+    def activeLeases(address: Address): Seq[LeaseTransaction] = s
+      .addressTransactions(address, 0, Int.MaxValue, Set(LeaseTransaction.typeId))
       .collect { case (_, l: LeaseTransaction) if s.leaseDetails(l.id()).exists(_.isActive) => l }
   }
+
 }

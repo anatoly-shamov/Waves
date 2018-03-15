@@ -25,14 +25,14 @@ case class IssueTransaction private (sender: PublicKeyAccount,
     extends SignedTransaction
     with FastHashId {
 
-  override val assetFee: (Option[AssetId], Long)      = (None, fee)
-  override val transactionType: TransactionType.Value = TransactionType.IssueTransaction
+  override val assetFee: (Option[AssetId], Long) = (None, fee)
+  override val builder: TransactionBuilder       = IssueTransaction
 
   val assetId = id
 
   val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(
     Bytes.concat(
-      Array(transactionType.id.toByte),
+      Array(builder.typeId),
       sender.publicKey,
       Deser.serializeArray(name),
       Deser.serializeArray(description),
@@ -53,18 +53,23 @@ case class IssueTransaction private (sender: PublicKeyAccount,
       "reissuable"  -> reissuable
     ))
 
-  override val bytes = Coeval.evalOnce(Bytes.concat(Array(transactionType.id.toByte), signature.arr, bodyBytes()))
+  override val bytes = Coeval.evalOnce(Bytes.concat(Array(builder.typeId), signature.arr, bodyBytes()))
 
 }
 
-object IssueTransaction {
+object IssueTransaction extends TransactionBuilder {
+
+  override type TransactionT = IssueTransaction
+  override val typeId: Byte  = 3
+  override val version: Byte = 1
+
   val MaxDescriptionLength = 1000
   val MaxAssetNameLength   = 16
   val MinAssetNameLength   = 4
   val MaxDecimals          = 8
 
-  def parseBytes(bytes: Array[Byte]): Try[IssueTransaction] = Try {
-    require(bytes.head == TransactionType.IssueTransaction.id)
+  override def parseBytes(bytes: Array[Byte]): Try[IssueTransaction] = Try {
+    require(bytes.head == typeId)
     parseTail(bytes.tail).get
   }
 
@@ -72,7 +77,7 @@ object IssueTransaction {
     Try {
       val signature = ByteStr(bytes.slice(0, SignatureLength))
       val txId      = bytes(SignatureLength)
-      require(txId == TransactionType.IssueTransaction.id.toByte, s"Signed tx id is not match")
+      require(txId == typeId, s"Signed tx id is not match")
       val sender                        = PublicKeyAccount(bytes.slice(SignatureLength + 1, SignatureLength + KeyLength + 1))
       val (assetName, descriptionStart) = Deser.parseArraySize(bytes, SignatureLength + KeyLength + 1)
       val (description, quantityStart)  = Deser.parseArraySize(bytes, descriptionStart)

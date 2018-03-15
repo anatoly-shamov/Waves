@@ -5,14 +5,14 @@ import com.wavesplatform.state2._
 import org.scalatest._
 import org.scalatest.prop.PropertyChecks
 import scorex.account.PrivateKeyAccount
-import scorex.transaction.TransactionParser.TransactionType
+import scorex.transaction.lease.LeaseCancelTransaction
 import scorex.transaction.smart.SetScriptTransaction
 
 class SetScriptTransactionSpecification extends PropSpec with PropertyChecks with Matchers with TransactionGen {
 
   property("SetScriptTransaction serialization roundtrip") {
     forAll(setScriptTransactionGen) { tx: SetScriptTransaction =>
-      require(tx.bytes().head == TransactionType.SetScriptTransaction.id)
+      require(tx.bytes().head == SetScriptTransaction.typeId || tx.bytes().head == LeaseCancelTransaction.typeId)
       val recovered = SetScriptTransaction.parseTail(tx.bytes().tail).get
       assertTxs(recovered, tx)
     }

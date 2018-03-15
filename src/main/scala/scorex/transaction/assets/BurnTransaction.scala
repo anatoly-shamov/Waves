@@ -19,9 +19,9 @@ case class BurnTransaction private(sender: PublicKeyAccount,
                                    signature: ByteStr)
   extends SignedTransaction with FastHashId {
 
-  override val transactionType: TransactionType.Value = TransactionType.BurnTransaction
+  override val builder: TransactionBuilder = BurnTransaction
 
-  override val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(transactionType.id.toByte),
+  override val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(builder.typeId),
     sender.publicKey,
     assetId.arr,
     Longs.toByteArray(amount),
@@ -43,12 +43,11 @@ case class BurnTransaction private(sender: PublicKeyAccount,
 }
 
 
-object BurnTransaction {
+object BurnTransaction extends TransactionBuilder {
 
-  def parseBytes(bytes: Array[Byte]): Try[BurnTransaction] = Try {
-    require(bytes.head == TransactionType.BurnTransaction.id)
-    parseTail(bytes.tail).get
-  }
+  override type TransactionT = BurnTransaction
+  override val typeId: Byte = 6
+  override val version: Byte = 1
 
   def parseTail(bytes: Array[Byte]): Try[BurnTransaction] = Try {
     val sender = PublicKeyAccount(bytes.slice(0, KeyLength))

@@ -3,16 +3,14 @@ package scorex.transaction
 import com.wavesplatform.TransactionGen
 import org.scalatest._
 import org.scalatest.prop.PropertyChecks
-import scorex.transaction.TransactionParser.TransactionType
 import scorex.transaction.lease.LeaseCancelTransaction
 
 import scala.util.Try
 
 class LeaseCancelTransactionSpecification extends PropSpec with PropertyChecks with Matchers with TransactionGen {
 
-
   def parseBytes(bytes: Array[Byte]): Try[LeaseCancelTransaction] = Try {
-    require(bytes.head == TransactionType.LeaseCancelTransaction.id)
+    require(bytes.head == LeaseCancelTransaction.typeId)
     LeaseCancelTransaction.parseTail(bytes.tail).get
   }
 

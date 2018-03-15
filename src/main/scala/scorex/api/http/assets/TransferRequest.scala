@@ -1,8 +1,11 @@
 package scorex.api.http.assets
 
+import io.swagger.annotations.ApiModelProperty
 import play.api.libs.json.{Format, Json}
 
-case class TransferRequest(assetId: Option[String],
+case class TransferRequest(@ApiModelProperty(value = "Version")
+                           version: Option[Byte],
+                           assetId: Option[String],
                            feeAssetId: Option[String],
                            amount: Long,
                            fee: Long,

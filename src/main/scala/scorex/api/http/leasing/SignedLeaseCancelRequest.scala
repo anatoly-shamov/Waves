@@ -9,7 +9,9 @@ import scorex.transaction.TransactionParser.SignatureStringLength
 import scorex.transaction.ValidationError
 import scorex.transaction.lease.LeaseCancelTransaction
 
-case class SignedLeaseCancelRequest(@ApiModelProperty(value = "Base58 encoded sender public key", required = true)
+case class SignedLeaseCancelRequest(@ApiModelProperty(value = "Version")
+                                    version: Option[Byte],
+                                    @ApiModelProperty(value = "Base58 encoded sender public key", required = true)
                                     senderPublicKey: String,
                                     @ApiModelProperty(value = "Base58 encoded lease transaction id", required = true)
                                     txId: String,
@@ -34,12 +36,13 @@ case class SignedLeaseCancelRequest(@ApiModelProperty(value = "Base58 encoded se
 
 object SignedLeaseCancelRequest {
   implicit val reads: Reads[SignedLeaseCancelRequest] = (
+    (JsPath \ "version").readNullable[Byte] and
       (JsPath \ "senderPublicKey").read[String] and
       (JsPath \ "txId").read[String].orElse((JsPath \ "leaseId").read[String]) and
       (JsPath \ "timestamp").read[Long] and
       (JsPath \ "signature").read[String] and
       (JsPath \ "fee").read[Long]
-    )(SignedLeaseCancelRequest.apply _)
+    ) (SignedLeaseCancelRequest.apply _)
 
   implicit val writes: Writes[SignedLeaseCancelRequest] = Json.writes[SignedLeaseCancelRequest]
 }

@@ -3,16 +3,14 @@ package scorex.transaction
 import com.wavesplatform.TransactionGen
 import org.scalatest._
 import org.scalatest.prop.PropertyChecks
-import scorex.transaction.TransactionParser.TransactionType
 import scorex.transaction.assets.ReissueTransaction
 
 import scala.util.Try
 
 class ReissueTransactionSpecification extends PropSpec with PropertyChecks with Matchers with TransactionGen {
 
-
   def parseBytes(bytes: Array[Byte]): Try[ReissueTransaction] = Try {
-    require(bytes.head == TransactionType.ReissueTransaction.id)
+    require(bytes.head == ReissueTransaction.typeId)
     ReissueTransaction.parseTail(bytes.tail).get
   }
 

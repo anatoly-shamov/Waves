@@ -4,17 +4,15 @@ import com.wavesplatform.TransactionGen
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{Matchers, PropSpec}
 import scorex.account.PrivateKeyAccount
-import scorex.transaction.TransactionParser.TransactionType
 import scorex.transaction.assets.TransferTransaction
 
 import scala.util.{Failure, Try}
-
 
 class TransactionSpecification extends PropSpec with PropertyChecks with Matchers with TransactionGen {
 
   def parseBytes(data: Array[Byte]): Try[TransferTransaction] = {
     data.head match {
-      case transactionType: Byte if transactionType == TransactionType.TransferTransaction.id =>
+      case transactionType: Byte if transactionType == TransferTransaction.typeId =>
         TransferTransaction.parseTail(data.tail)
       case transactionType =>
         Failure(new Exception(s"Incorrect transaction type '$transactionType' in TransferTransaction data"))

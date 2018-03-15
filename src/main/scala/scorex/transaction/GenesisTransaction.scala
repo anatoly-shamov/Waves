@@ -14,13 +14,12 @@ case class GenesisTransaction private(recipient: Address, amount: Long, timestam
 
   import GenesisTransaction._
 
+  override val builder: TransactionBuilder = GenesisTransaction
   override val assetFee: (Option[AssetId], Long) = (None, 0)
   override val id: Coeval[AssetId] = Coeval.evalOnce(signature)
 
-  val transactionType: TransactionParser.TransactionType.Value = TransactionType.GenesisTransaction
-
   override val json: Coeval[JsObject] = Coeval.evalOnce(
-    Json.obj("type" -> transactionType.id,
+    Json.obj("type" -> builder.typeId,
       "id" -> id().base58,
       "fee" -> 0,
       "timestamp" -> timestamp,
@@ -29,7 +28,7 @@ case class GenesisTransaction private(recipient: Address, amount: Long, timestam
       "amount" -> amount))
 
   override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce {
-    val typeBytes = Array(transactionType.id.toByte)
+    val typeBytes = Array(builder.typeId)
     val timestampBytes = Bytes.ensureCapacity(Longs.toByteArray(timestamp), TimestampLength, 0)
     val amountBytes = Bytes.ensureCapacity(Longs.toByteArray(amount), AmountLength, 0)
     val rcpBytes = recipient.bytes.arr
@@ -41,13 +40,17 @@ case class GenesisTransaction private(recipient: Address, amount: Long, timestam
 }
 
 
-object GenesisTransaction extends {
+object GenesisTransaction extends TransactionBuilder {
+
+  override type TransactionT = GenesisTransaction
+  override val typeId: Byte = 1
+  override val version: Byte = 1
 
   private val RECIPIENT_LENGTH = Address.AddressLength
   private val BASE_LENGTH = TimestampLength + RECIPIENT_LENGTH + AmountLength
 
   def generateSignature(recipient: Address, amount: Long, timestamp: Long): Array[Byte] = {
-    val typeBytes = Bytes.ensureCapacity(Ints.toByteArray(TransactionType.GenesisTransaction.id), TypeLength, 0)
+    val typeBytes = Bytes.ensureCapacity(Ints.toByteArray(typeId), TypeLength, 0)
     val timestampBytes = Bytes.ensureCapacity(Longs.toByteArray(timestamp), TimestampLength, 0)
     val amountBytes = Longs.toByteArray(amount)
     val amountFill = new Array[Byte](AmountLength - amountBytes.length)

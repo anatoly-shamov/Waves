@@ -5,7 +5,6 @@ import org.scalatest._
 import org.scalatest.prop.PropertyChecks
 import scorex.account.{PrivateKeyAccount, PublicKeyAccount}
 import scorex.crypto.encode.Base58
-import scorex.transaction.TransactionParser.TransactionType
 
 import scala.util.{Failure, Try}
 
@@ -13,10 +12,9 @@ class GenesisTransactionSpecification extends PropSpec with PropertyChecks with 
 
   private val defaultRecipient = PublicKeyAccount(Array.fill(32)(0: Byte))
 
-
   def parseBytes(data: Array[Byte]): Try[GenesisTransaction] = {
     data.head match {
-      case transactionType: Byte if transactionType == TransactionType.GenesisTransaction.id =>
+      case transactionType: Byte if transactionType == GenesisTransaction.typeId =>
         GenesisTransaction.parseTail(data.tail)
       case transactionType =>
         Failure(new Exception(s"Incorrect transaction type '$transactionType' in GenesisTransaction data"))

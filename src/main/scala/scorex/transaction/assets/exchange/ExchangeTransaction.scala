@@ -7,24 +7,30 @@ import io.swagger.annotations.ApiModelProperty
 import monix.eval.Coeval
 import play.api.libs.json.{JsObject, Json}
 import scorex.account.{PrivateKeyAccount, PublicKeyAccount}
-import scorex.transaction.TransactionParser.TransactionType
 import scorex.transaction.ValidationError.{GenericError, OrderValidationError}
 import scorex.transaction.{ValidationError, _}
 
 import scala.util.{Failure, Success, Try}
 
-case class ExchangeTransaction private(buyOrder: Order, sellOrder: Order, price: Long, amount: Long, buyMatcherFee: Long,
-                                       sellMatcherFee: Long, fee: Long, timestamp: Long, signature: ByteStr)
+case class ExchangeTransaction private(buyOrder: Order,
+                                       sellOrder: Order,
+                                       price: Long,
+                                       amount: Long,
+                                       buyMatcherFee: Long,
+                                       sellMatcherFee: Long,
+                                       fee: Long,
+                                       timestamp: Long,
+                                       signature: ByteStr)
   extends SignedTransaction with FastHashId {
 
-  override val transactionType: TransactionType.Value = TransactionType.ExchangeTransaction
+  override val builder: TransactionBuilder = ExchangeTransaction
 
   override val assetFee: (Option[AssetId], Long) = (None, fee)
 
   @ApiModelProperty(hidden = true)
   override val sender: PublicKeyAccount = buyOrder.matcherPublicKey
 
-  override val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Array(transactionType.id.toByte) ++
+  override val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Array(builder.typeId) ++
     Ints.toByteArray(buyOrder.bytes().length) ++ Ints.toByteArray(sellOrder.bytes().length) ++
     buyOrder.bytes() ++ sellOrder.bytes() ++ Longs.toByteArray(price) ++ Longs.toByteArray(amount) ++
     Longs.toByteArray(buyMatcherFee) ++ Longs.toByteArray(sellMatcherFee) ++ Longs.toByteArray(fee) ++
@@ -44,7 +50,12 @@ case class ExchangeTransaction private(buyOrder: Order, sellOrder: Order, price:
   override val signedDescendants: Coeval[Seq[Order]] = Coeval.evalOnce(Seq(buyOrder, sellOrder))
 }
 
-object ExchangeTransaction {
+object ExchangeTransaction extends TransactionBuilder {
+
+  override type TransactionT = ExchangeTransaction
+  override val typeId: Byte = 7
+  override val version: Byte = 1
+
   def create(matcher: PrivateKeyAccount, buyOrder: Order, sellOrder: Order, price: Long, amount: Long,
              buyMatcherFee: Long, sellMatcherFee: Long, fee: Long, timestamp: Long): Either[ValidationError, ExchangeTransaction] = {
     create(buyOrder, sellOrder, price, amount, buyMatcherFee, sellMatcherFee, fee, timestamp, ByteStr.empty).right.map { unverified =>
@@ -92,7 +103,7 @@ object ExchangeTransaction {
   }
 
   def parseBytes(bytes: Array[Byte]): Try[ExchangeTransaction] = Try {
-    require(bytes.head == TransactionType.ExchangeTransaction.id)
+    require(bytes.head == typeId)
     parseTail(bytes.tail).get
   }
 

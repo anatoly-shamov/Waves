@@ -7,7 +7,7 @@ import monix.eval.Coeval
 import play.api.libs.json.{JsObject, Json}
 import scorex.account.{PrivateKeyAccount, PublicKeyAccount}
 import scorex.transaction.TransactionParser._
-import scorex.transaction.{ValidationError, _}
+import scorex.transaction._
 
 import scala.util.{Failure, Success, Try}
 
@@ -19,9 +19,9 @@ case class ReissueTransaction private(sender: PublicKeyAccount,
                                       timestamp: Long,
                                       signature: ByteStr) extends SignedTransaction with FastHashId {
 
-  override val transactionType: TransactionType.Value = TransactionType.ReissueTransaction
+  override val builder: TransactionBuilder = ReissueTransaction
 
-  val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(transactionType.id.toByte),
+  val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(builder.typeId),
     sender.publicKey,
     assetId.arr,
     Longs.toByteArray(quantity),
@@ -37,14 +37,19 @@ case class ReissueTransaction private(sender: PublicKeyAccount,
 
   override val assetFee: (Option[AssetId], Long) = (None, fee)
 
-  override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(transactionType.id.toByte), signature.arr, bodyBytes()))
+  override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(builder.typeId), signature.arr, bodyBytes()))
 }
 
-object ReissueTransaction {
+object ReissueTransaction extends TransactionBuilder {
+
+  override type TransactionT = ReissueTransaction
+  override val typeId: Byte  = 5
+  override val version: Byte = 1
+
   def parseTail(bytes: Array[Byte]): Try[ReissueTransaction] = Try {
     val signature = ByteStr(bytes.slice(0, SignatureLength))
     val txId = bytes(SignatureLength)
-    require(txId == TransactionType.ReissueTransaction.id.toByte, s"Signed tx id is not match")
+    require(txId == typeId, s"Signed tx id is not match")
     val sender = PublicKeyAccount(bytes.slice(SignatureLength + 1, SignatureLength + KeyLength + 1))
     val assetId = ByteStr(bytes.slice(SignatureLength + KeyLength + 1, SignatureLength + KeyLength + AssetIdLength + 1))
     val quantityStart = SignatureLength + KeyLength + AssetIdLength + 1

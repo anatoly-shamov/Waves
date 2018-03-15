@@ -24,7 +24,8 @@ case class TransferTransaction private(assetId: Option[AssetId],
                                        attachment: Array[Byte],
                                        signature: ByteStr)
   extends SignedTransaction with FastHashId {
-  override val transactionType: TransactionType.Value = TransactionType.TransferTransaction
+
+  override val builder: TransactionBuilder = TransferTransaction
 
   override val assetFee: (Option[AssetId], Long) = (feeAssetId, fee)
 
@@ -35,7 +36,7 @@ case class TransferTransaction private(assetId: Option[AssetId],
     val feeAssetIdBytes = feeAssetId.map(a => (1: Byte) +: a.arr).getOrElse(Array(0: Byte))
     val feeBytes = Longs.toByteArray(fee)
 
-    Bytes.concat(Array(transactionType.id.toByte),
+    Bytes.concat(Array(builder.typeId),
       sender.publicKey,
       assetIdBytes,
       feeAssetIdBytes,
@@ -54,21 +55,23 @@ case class TransferTransaction private(assetId: Option[AssetId],
     "attachment" -> Base58.encode(attachment)
   ))
 
-  override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(transactionType.id.toByte), signature.arr, bodyBytes()))
+  override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(builder.typeId), signature.arr, bodyBytes()))
 
 }
 
-object TransferTransaction {
+object TransferTransaction extends TransactionBuilder {
+
+  override type TransactionT = TransferTransaction
+  override val typeId: Byte = 4
+  override val version: Byte = 1
 
   val MaxAttachmentSize = 140
   val MaxAttachmentStringSize = base58Length(MaxAttachmentSize)
 
-
   def parseTail(bytes: Array[Byte]): Try[TransferTransaction] = Try {
-
     val signature = ByteStr(bytes.slice(0, SignatureLength))
     val txId = bytes(SignatureLength)
-    require(txId == TransactionType.TransferTransaction.id.toByte, s"Signed tx id is not match")
+    require(txId == typeId, s"Signed tx id is not match")
     val sender = PublicKeyAccount(bytes.slice(SignatureLength + 1, SignatureLength + KeyLength + 1))
     val (assetIdOpt, s0) = Deser.parseByteArrayOption(bytes, SignatureLength + KeyLength + 1, AssetIdLength)
     val (feeAssetIdOpt, s1) = Deser.parseByteArrayOption(bytes, s0, AssetIdLength)

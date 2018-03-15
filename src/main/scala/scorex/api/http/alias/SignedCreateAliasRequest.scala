@@ -7,7 +7,9 @@ import scorex.api.http.BroadcastRequest
 import scorex.transaction.TransactionParser.SignatureStringLength
 import scorex.transaction.{CreateAliasTransaction, ValidationError}
 
-case class SignedCreateAliasRequest(@ApiModelProperty(value = "Base58 encoded sender public key", required = true)
+case class SignedCreateAliasRequest(@ApiModelProperty(value = "Version")
+                                    version: Option[Byte],
+                                    @ApiModelProperty(value = "Base58 encoded sender public key", required = true)
                                     senderPublicKey: String,
                                     @ApiModelProperty(required = true)
                                     fee: Long,

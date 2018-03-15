@@ -6,26 +6,30 @@ import scorex.transaction.assets.exchange.ExchangeTransaction
 import scorex.transaction.lease.{LeaseCancelTransaction, LeaseTransaction}
 import scorex.transaction.smart.SetScriptTransaction
 
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 object TransactionParser {
 
-  object TransactionType extends Enumeration {
-    val GenesisTransaction = Value(1)
-    val PaymentTransaction = Value(2)
-    val IssueTransaction = Value(3)
-    val TransferTransaction = Value(4)
-    val ReissueTransaction = Value(5)
-    val BurnTransaction = Value(6)
-    val ExchangeTransaction = Value(7)
-    val LeaseTransaction = Value(8)
-    val LeaseCancelTransaction = Value(9)
-    val CreateAliasTransaction = Value(10)
-    val MassTransferTransaction = Value(11)
-    val DataTransaction = Value(12)
-    val SetScriptTransaction = Value(13)
-    val VersionedTransferTransaction = Value(14)
-    val SmartIssueTransaction = Value(15)
+  private val old: Map[Byte, TransactionBuilder] = Seq(
+    GenesisTransaction, PaymentTransaction, IssueTransaction, TransferTransaction, ReissueTransaction,
+    BurnTransaction, ExchangeTransaction, LeaseTransaction, LeaseCancelTransaction, CreateAliasTransaction,
+    MassTransferTransaction
+  ).map { x =>
+    x.typeId -> x
+  }(collection.breakOut)
+
+  private val modern: Map[Byte, TransactionBuilder] = Seq(
+    DataTransaction, VersionedTransferTransaction, SetScriptTransaction, SmartIssueTransaction
+  ).map { x =>
+    x.typeId -> x
+  }(collection.breakOut)
+
+  private val all: Map[(Byte, Byte), TransactionBuilder] = (old ++ modern).map {
+    case (typeId, builder) => ((typeId, builder.version), builder)
+  }
+
+  private val byName: Map[String, TransactionBuilder] = (old ++ modern).map {
+    case (_, builder) => builder.classTag.runtimeClass.getSimpleName -> builder // @TODO check
   }
 
   val TimestampLength = 8
@@ -36,53 +40,30 @@ object TransactionParser {
   val KeyLength = 32
   val KeyStringLength: Int = base58Length(KeyLength)
 
-  def parseBytes(data: Array[Byte]): Try[Transaction] =
-    data.head match {
-      case txType: Byte if txType == TransactionType.GenesisTransaction.id =>
-        GenesisTransaction.parseTail(data.tail)
+  def builderByName(x: String): Option[TransactionBuilder] = byName.get(x)
+  def builderFor(typeId: Byte, version: Byte): Option[TransactionBuilder] = all.get((typeId, version))
 
-      case txType: Byte if txType == TransactionType.PaymentTransaction.id =>
-        PaymentTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.IssueTransaction.id =>
-        IssueTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.TransferTransaction.id =>
-        TransferTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.ReissueTransaction.id =>
-        ReissueTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.BurnTransaction.id =>
-        BurnTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.ExchangeTransaction.id =>
-        ExchangeTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.LeaseTransaction.id =>
-        LeaseTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.LeaseCancelTransaction.id =>
-        LeaseCancelTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.CreateAliasTransaction.id =>
-        CreateAliasTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.MassTransferTransaction.id =>
-        MassTransferTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.SetScriptTransaction.id =>
-        SetScriptTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.VersionedTransferTransaction.id =>
-        VersionedTransferTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.SmartIssueTransaction.id =>
-        SmartIssueTransaction.parseTail(data.tail)
-
-      case txType: Byte if txType == TransactionType.DataTransaction.id =>
-        DataTransaction.parseTail(data.tail)
-
-      case txType => Failure(new Exception(s"Invalid transaction type: $txType"))
+  def parseBytes(data: Array[Byte]): Try[Transaction] = data
+    .headOption
+    .fold[Try[Byte]](Failure(new IllegalArgumentException("Can't find the significant byte: the buffer is empty")))(Success(_))
+    .flatMap { headByte =>
+      if (headByte == 0) modernParseBytes(data.tail)
+      else oldParseBytes(headByte, data)
     }
+
+  private def oldParseBytes(tpe: Byte, data: Array[Byte]): Try[Transaction] = old
+    .get(tpe)
+    .fold[Try[TransactionBuilder]](Failure(new IllegalArgumentException(s"Unknown transaction type (old encoding): '$tpe'")))(Success(_))
+    .flatMap(_.parseBytes(data))
+
+  private def modernParseBytes(data: Array[Byte]): Try[Transaction] = data
+    .headOption
+    .fold[Try[Byte]](Failure(new IllegalArgumentException("Can't determine the type of transaction: the buffer is empty")))(Success(_))
+    .flatMap { headByte =>
+      modern
+        .get(headByte)
+        .fold[Try[TransactionBuilder]](Failure(new IllegalArgumentException(s"Unknown transaction type (modern encoding): '$headByte'")))(Success(_))
+    }
+    .flatMap(_.parseBytes(data))
+
 }

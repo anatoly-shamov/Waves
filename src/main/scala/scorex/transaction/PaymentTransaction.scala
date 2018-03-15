@@ -18,7 +18,7 @@ case class PaymentTransaction private(sender: PublicKeyAccount,
                                       fee: Long,
                                       timestamp: Long,
                                       signature: ByteStr) extends SignedTransaction {
-  override val transactionType = TransactionType.PaymentTransaction
+  override val builder: TransactionBuilder = PaymentTransaction
   override val assetFee: (Option[AssetId], Long) = (None, fee)
   override val id: Coeval[AssetId] = Coeval.evalOnce(signature)
 
@@ -26,10 +26,10 @@ case class PaymentTransaction private(sender: PublicKeyAccount,
     "recipient" -> recipient.address,
     "amount" -> amount))
 
-  private val hashBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(transactionType.id.toByte),
+  private val hashBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(builder.typeId),
     Longs.toByteArray(timestamp), sender.publicKey, recipient.bytes.arr, Longs.toByteArray(amount), Longs.toByteArray(fee)))
 
-  override val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Ints.toByteArray(transactionType.id),
+  override val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Ints.toByteArray(builder.typeId),
     Longs.toByteArray(timestamp), sender.publicKey, recipient.bytes.arr, Longs.toByteArray(amount), Longs.toByteArray(fee)))
 
   val hash: Coeval[Array[Byte]] = Coeval.evalOnce(crypto.fastHash(hashBytes()))
@@ -38,7 +38,11 @@ case class PaymentTransaction private(sender: PublicKeyAccount,
 
 }
 
-object PaymentTransaction {
+object PaymentTransaction extends TransactionBuilder {
+
+  override type TransactionT = PaymentTransaction
+  override val typeId: Byte = 2
+  override val version: Byte = 1
 
   val RecipientLength: Int = Address.AddressLength
 

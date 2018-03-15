@@ -55,13 +55,13 @@ trait RequestGen extends TransactionGen { _: Suite =>
     quantity <- positiveLongGen
     decimals <- G.choose[Byte](0, IssueTransaction.MaxDecimals.toByte)
     reissuable <- G.oneOf(true, false)
-  } yield IssueRequest(account, new String(name), new String(description), quantity, decimals, reissuable, fee)
+  } yield IssueRequest(version = None, account, new String(name), new String(description), quantity, decimals, reissuable, fee)
 
   val broadcastIssueReq: G[SignedIssueRequest] = for {
     _signature <- signatureGen
     _timestamp <- ntpTimestampGen
     _ir <- issueReq
-  } yield SignedIssueRequest(_ir.sender, _ir.name, _ir.description, _ir.quantity, _ir.decimals, _ir.reissuable, _ir.fee,
+  } yield SignedIssueRequest(version = None, _ir.sender, _ir.name, _ir.description, _ir.quantity, _ir.decimals, _ir.reissuable, _ir.fee,
     _timestamp, _signature)
 
   private val reissueBurnFields = for {
@@ -73,24 +73,24 @@ trait RequestGen extends TransactionGen { _: Suite =>
     (account, fee) <- commonFields
     (assetId, quantity) <- reissueBurnFields
     reissuable <- G.oneOf(true, false)
-  } yield ReissueRequest(account, assetId, quantity, reissuable, fee)
+  } yield ReissueRequest(version = None, account, assetId, quantity, reissuable, fee)
 
   val broadcastReissueReq: G[SignedReissueRequest] = for {
     _signature <- signatureGen
     _timestamp <- ntpTimestampGen
     _rr <- reissueReq
-  } yield SignedReissueRequest(_rr.sender, _rr.assetId, _rr.quantity, _rr.reissuable, _rr.fee, _timestamp, _signature)
+  } yield SignedReissueRequest(version = None, _rr.sender, _rr.assetId, _rr.quantity, _rr.reissuable, _rr.fee, _timestamp, _signature)
 
   val burnReq: G[BurnRequest] = for {
     (account, fee) <- commonFields
     (assetId, quantity) <- reissueBurnFields
-  } yield BurnRequest(account, assetId, quantity, fee)
+  } yield BurnRequest(version = None, account, assetId, quantity, fee)
 
   val broadcastBurnReq: G[SignedBurnRequest] = for {
     _signature <- signatureGen
     _timestamp <- ntpTimestampGen
     _br <- burnReq
-  } yield SignedBurnRequest(_br.sender, _br.assetId, _br.quantity, _br.fee, _timestamp, _signature)
+  } yield SignedBurnRequest(version = None, _br.sender, _br.assetId, _br.quantity, _br.fee, _timestamp, _signature)
 
   val transferReq: G[TransferRequest] = for {
     (account, fee) <- commonFields
@@ -99,30 +99,30 @@ trait RequestGen extends TransactionGen { _: Suite =>
     assetId <- assetIdStringGen
     feeAssetId <- assetIdStringGen
     attachment <- genBoundedString(1, 20).map(b => Some(Base58.encode(b)))
-  } yield TransferRequest(assetId, feeAssetId, amount, fee, account, attachment, recipient)
+  } yield TransferRequest(version = None, assetId, feeAssetId, amount, fee, account, attachment, recipient)
 
   val broadcastTransferReq: G[SignedTransferRequest] = for {
     _signature <- signatureGen
     _timestamp <- ntpTimestampGen
     _tr <- transferReq
-  } yield SignedTransferRequest(_tr.sender, _tr.assetId, _tr.recipient, _tr.amount, _tr.fee, _tr.feeAssetId, _timestamp,
+  } yield SignedTransferRequest(version = None, _tr.sender, _tr.assetId, _tr.recipient, _tr.amount, _tr.fee, _tr.feeAssetId, _timestamp,
     _tr.attachment, _signature)
 
   val createAliasReq: G[SignedCreateAliasRequest] = for {
     _signature <- signatureGen
     _timestamp <- ntpTimestampGen
     _alias <- createAliasGen
-  } yield SignedCreateAliasRequest(_alias.sender.toString, _alias.fee, _alias.alias.name, _timestamp, _signature)
+  } yield SignedCreateAliasRequest(version = None, _alias.sender.toString, _alias.fee, _alias.alias.name, _timestamp, _signature)
 
   val leaseReq: G[SignedLeaseRequest] = for {
     _signature <- signatureGen
     _timestamp <- ntpTimestampGen
     _alias <- leaseGen
-  } yield SignedLeaseRequest(_alias.sender.toString, _alias.amount, _alias.fee, _alias.recipient.toString, _timestamp, _signature)
+  } yield SignedLeaseRequest(version = None, _alias.sender.toString, _alias.amount, _alias.fee, _alias.recipient.toString, _timestamp, _signature)
 
   val leaseCancelReq: G[SignedLeaseCancelRequest] = for {
     _signature <- signatureGen
     _timestamp <- ntpTimestampGen
     _cancel <- leaseCancelGen
-  } yield SignedLeaseCancelRequest(_cancel.sender.toString, _cancel.leaseId.base58, _cancel.timestamp, _signature, _cancel.fee)
+  } yield SignedLeaseCancelRequest(version = None, _cancel.sender.toString, _cancel.leaseId.base58, _cancel.timestamp, _signature, _cancel.fee)
 }

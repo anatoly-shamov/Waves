@@ -21,9 +21,9 @@ class MassTransferTransactionSuite extends BaseTransactionSuite with CancelAfter
   private val transferAmount = 5.waves
   private val leasingAmount = 5.waves
   private val leasingFee = 0.003.waves
-  private val transferFee = notMiner.settings.feesSettings.fees(TransactionType.TransferTransaction.id)(0).fee
+  private val transferFee = notMiner.settings.feesSettings.fees(TransactionType.TransferTransactionV1.id)(0).fee
   private val issueFee = 1.waves
-  private val massTransferFeePerTransfer = notMiner.settings.feesSettings.fees(TransactionType.MassTransferTransaction.id)(0).fee
+  private val massTransferFeePerTransfer = notMiner.settings.feesSettings.fees(TransactionType.MassTransferTransactionV1.id)(0).fee
 
 
   test("asset mass transfer changes asset balances and sender's.waves balance is decreased by fee.") {

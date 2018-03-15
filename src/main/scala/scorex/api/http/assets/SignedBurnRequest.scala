@@ -11,29 +11,32 @@ import scorex.transaction.{AssetIdStringLength, ValidationError}
 
 object SignedBurnRequest {
   implicit val reads: Reads[SignedBurnRequest] = (
+    (JsPath \ "version").readNullable[Byte] and
       (JsPath \ "senderPublicKey").read[String] and
       (JsPath \ "assetId").read[String] and
       (JsPath \ "quantity").read[Long].orElse((JsPath \ "amount").read[Long]) and
       (JsPath \ "fee").read[Long] and
       (JsPath \ "timestamp").read[Long] and
       (JsPath \ "signature").read[String]
-    )(SignedBurnRequest.apply _)
+    ) (SignedBurnRequest.apply _)
 
   implicit val writes: Writes[SignedBurnRequest] = Json.writes[SignedBurnRequest]
 }
 
-case class SignedBurnRequest(@ApiModelProperty(value = "Base58 encoded Issuer public key", required = true)
-                            senderPublicKey: String,
+case class SignedBurnRequest(@ApiModelProperty(value = "Version")
+                             version: Option[Byte],
+                             @ApiModelProperty(value = "Base58 encoded Issuer public key", required = true)
+                             senderPublicKey: String,
                              @ApiModelProperty(value = "Base58 encoded Asset ID", required = true)
-                            assetId: String,
+                             assetId: String,
                              @ApiModelProperty(required = true, example = "1000000")
-                            quantity: Long,
+                             quantity: Long,
                              @ApiModelProperty(required = true)
-                            fee: Long,
+                             fee: Long,
                              @ApiModelProperty(required = true)
-                            timestamp: Long,
+                             timestamp: Long,
                              @ApiModelProperty(required = true)
-                            signature: String) extends BroadcastRequest {
+                             signature: String) extends BroadcastRequest {
 
   def toTx: Either[ValidationError, BurnTransaction] = for {
     _sender <- PublicKeyAccount.fromBase58String(senderPublicKey)

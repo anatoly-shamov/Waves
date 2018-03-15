@@ -3,7 +3,9 @@ package scorex.api.http.leasing
 import io.swagger.annotations.ApiModelProperty
 import play.api.libs.json.{Format, Json}
 
-case class LeaseRequest(@ApiModelProperty(value = "Base58 encoded sender public key", required = true)
+case class LeaseRequest(@ApiModelProperty(value = "Version")
+                        version: Option[Byte],
+                        @ApiModelProperty(value = "Base58 encoded sender public key", required = true)
                         sender: String,
                         @ApiModelProperty(required = true)
                         amount: Long,

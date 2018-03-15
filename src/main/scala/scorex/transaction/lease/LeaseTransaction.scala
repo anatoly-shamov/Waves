@@ -19,9 +19,9 @@ case class LeaseTransaction private(sender: PublicKeyAccount,
                                     signature: ByteStr)
   extends SignedTransaction with FastHashId {
 
-  override val transactionType: TransactionType.Value = TransactionType.LeaseTransaction
+  override val builder: TransactionBuilder = LeaseTransaction
 
-  val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(transactionType.id.toByte),
+  val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(builder.typeId),
     sender.publicKey,
     recipient.bytes.arr,
     Longs.toByteArray(amount),
@@ -40,7 +40,11 @@ case class LeaseTransaction private(sender: PublicKeyAccount,
 
 }
 
-object LeaseTransaction {
+object LeaseTransaction extends TransactionBuilder {
+
+  override type TransactionT = LeaseTransaction
+  override val typeId: Byte = 8
+  override val version: Byte = 1
 
   object Status {
     val Active = "active"

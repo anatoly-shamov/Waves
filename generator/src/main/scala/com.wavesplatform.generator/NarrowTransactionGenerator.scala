@@ -65,7 +65,7 @@ class NarrowTransactionGenerator(settings: Settings,
         def ts = System.currentTimeMillis()
 
         val tx = txType match {
-          case TransactionType.IssueTransaction =>
+          case TransactionType.IssueTransactionV1 =>
             val sender = randomFrom(accounts).get
             val name = new Array[Byte](10)
             val description = new Array[Byte](10)
@@ -74,7 +74,7 @@ class NarrowTransactionGenerator(settings: Settings,
             val reissuable = r.nextBoolean()
             val amount = 100000000L + Random.nextInt(Int.MaxValue)
             logOption(IssueTransaction.create(sender, name, description, amount, Random.nextInt(9).toByte, reissuable, 100000000L + r.nextInt(100000000), ts))
-          case TransactionType.TransferTransaction =>
+          case TransactionType.TransferTransactionV1 =>
             val useAlias = r.nextBoolean()
             val recipient = if (useAlias && aliases.nonEmpty) randomFrom(aliases).map(_.alias).get else randomFrom(accounts).get.toAddress
             val sendAsset = r.nextBoolean()
@@ -89,18 +89,18 @@ class NarrowTransactionGenerator(settings: Settings,
               logOption(TransferTransaction.create(asset, sender, recipient, r.nextInt(500000), ts, None, moreThatStandartFee,
                 Array.fill(r.nextInt(100))(r.nextInt().toByte)))
             }
-          case TransactionType.ReissueTransaction =>
+          case TransactionType.ReissueTransactionV1 =>
             val reissuable = r.nextBoolean()
             randomFrom(reissuableIssueTxs).flatMap(assetTx => {
               val sender = accounts.find(_.address == assetTx.sender.address).get
               logOption(ReissueTransaction.create(sender, assetTx.id(), Random.nextInt(Int.MaxValue), reissuable, moreThatStandartFee, ts))
             })
-          case TransactionType.BurnTransaction =>
+          case TransactionType.BurnTransactionV1 =>
             randomFrom(validIssueTxs).flatMap(assetTx => {
               val sender = accounts.find(_.address == assetTx.sender.address).get
               logOption(BurnTransaction.create(sender, assetTx.id(), Random.nextInt(1000), moreThatStandartFee, ts))
             })
-          case TransactionType.ExchangeTransaction =>
+          case TransactionType.ExchangeTransactionV1 =>
             val matcher = randomFrom(accounts).get
             val seller = randomFrom(accounts).get
             val pair = AssetPair(None, Some(tradeAssetIssue.id()))
@@ -108,22 +108,22 @@ class NarrowTransactionGenerator(settings: Settings,
             val buyer = randomFrom(accounts).get
             val buyOrder = Order.buy(buyer, matcher, pair, 100000000, 1, ts, ts + 1.day.toMillis, moreThatStandartFee * 3)
             logOption(ExchangeTransaction.create(matcher, buyOrder, sellOrder, 100000000, 1, 300000, 300000, moreThatStandartFee * 3, ts))
-          case TransactionType.LeaseTransaction =>
+          case TransactionType.LeaseTransactionV1 =>
             val sender = randomFrom(accounts).get
             val useAlias = r.nextBoolean()
             val recipientOpt = if (useAlias && aliases.nonEmpty) randomFrom(aliases.filter(_.sender != sender)).map(_.alias) else randomFrom(accounts.filter(_ != sender).map(_.toAddress))
             recipientOpt.flatMap(recipient =>
               logOption(LeaseTransaction.create(sender, 1, moreThatStandartFee * 3, ts, recipient)))
-          case TransactionType.LeaseCancelTransaction =>
+          case TransactionType.LeaseCancelTransactionV1 =>
             randomFrom(activeLeaseTransactions).flatMap(lease => {
               val sender = accounts.find(_.address == lease.sender.address).get
               logOption(LeaseCancelTransaction.create(sender, lease.id(), moreThatStandartFee * 3, ts))
             })
-          case TransactionType.CreateAliasTransaction =>
+          case TransactionType.CreateAliasTransactionV1 =>
             val sender = randomFrom(accounts).get
             val aliasString = NarrowTransactionGenerator.generateAlias()
             logOption(CreateAliasTransaction.create(sender, Alias.buildWithCurrentNetworkByte(aliasString).right.get, 100000, ts))
-          case TransactionType.MassTransferTransaction =>
+          case TransactionType.MassTransferTransactionV1 =>
             val transferCount = r.nextInt(MassTransferTransaction.MaxTransferCount)
             val transfers = for (i <- 0 to transferCount) yield {
               val useAlias = r.nextBoolean()

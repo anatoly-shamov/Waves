@@ -4,14 +4,13 @@ import com.wavesplatform.{TransactionGen, WithDB}
 import com.wavesplatform.state2.HistoryTest
 import org.scalatest.{Matchers, PropSpec}
 import org.scalatest.prop.PropertyChecks
-import scorex.transaction.TransactionParser.TransactionType
 import scorex.transaction.assets.SmartIssueTransaction
 
 class SmartIssueTransactionSpecification extends PropSpec with PropertyChecks with Matchers with TransactionGen with WithDB with HistoryTest {
 
   property("SmartIssueTransaction serialization roundtrip") {
     forAll(smartIssueTransactionGen()) { tx: SmartIssueTransaction =>
-      require(tx.bytes().head == TransactionType.SmartIssueTransaction.id)
+      require(tx.bytes().head == SmartIssueTransaction)
       val recovered = SmartIssueTransaction.parseTail(tx.bytes().tail).get
 
       tx.sender.address shouldEqual recovered.sender.address

@@ -7,15 +7,13 @@ import monix.eval.Coeval
 import play.api.libs.json.Json
 import scorex.account.{AddressScheme, PrivateKeyAccount, PublicKeyAccount}
 import scorex.serialization.Deser
-import scorex.transaction.TransactionParser.TransactionType
 import scorex.transaction.ValidationError.{GenericError, UnsupportedVersion}
 import scorex.transaction.smart.Script
 import scorex.transaction._
 
 import scala.util.Try
 
-case class SmartIssueTransaction private (version: Byte,
-                                          chainId: Byte,
+case class SmartIssueTransaction private (chainId: Byte,
                                           sender: PublicKeyAccount,
                                           name: Array[Byte],
                                           description: Array[Byte],
@@ -45,18 +43,22 @@ case class SmartIssueTransaction private (version: Byte,
       Longs.toByteArray(timestamp)
     ))
 
-  override val transactionType            = TransactionType.SmartIssueTransaction
-  override val assetFee                   = (None, fee)
-  override val json                       = Coeval.evalOnce(jsonBase() ++ Json.obj("version" -> version, "script" -> script.map(_.text)))
-  override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(transactionType.id.toByte), bodyBytes(), proofs.bytes()))
+  override val builder: TransactionBuilder = SmartIssueTransaction
+  override val assetFee                    = (None, fee)
+  override val json                        = Coeval.evalOnce(jsonBase() ++ Json.obj("version" -> version, "script" -> script.map(_.text)))
+  override val bytes: Coeval[Array[Byte]]  = Coeval.evalOnce(Bytes.concat(Array(builder.typeId), bodyBytes(), proofs.bytes()))
 }
 
-object SmartIssueTransaction {
+object SmartIssueTransaction extends TransactionBuilder {
+
+  override type TransactionT = SmartIssueTransaction
+  override val typeId: Byte  = 3
+  override val version: Byte = 2
 
   private val networkByte = AddressScheme.current.chainId
 
-  def parseBytes(bytes: Array[Byte]): Try[SmartIssueTransaction] = Try {
-    require(bytes.head == TransactionType.SmartIssueTransaction.id)
+  override def parseBytes(bytes: Array[Byte]): Try[SmartIssueTransaction] = Try {
+    require(bytes.head == typeId)
     parseTail(bytes.tail).get
   }
 
@@ -89,8 +91,7 @@ object SmartIssueTransaction {
 
     }.flatten
 
-  def create(version: Byte,
-             chainId: Byte,
+  def create(chainId: Byte,
              sender: PublicKeyAccount,
              name: Array[Byte],
              description: Array[Byte],
@@ -105,10 +106,9 @@ object SmartIssueTransaction {
       _ <- Either.cond(version == 1, (), UnsupportedVersion(version))
       _ <- Either.cond(chainId == networkByte, (), GenericError(s"Wrong chainId ${chainId.toInt}"))
       _ <- IssueTransaction.validateIssueParams(name, description, quantity, decimals, reissuable, fee)
-    } yield SmartIssueTransaction(version, chainId, sender, name, description, quantity, decimals, reissuable, script, fee, timestamp, proofs)
+    } yield SmartIssueTransaction(chainId, sender, name, description, quantity, decimals, reissuable, script, fee, timestamp, proofs)
 
-  def selfSigned(version: Byte,
-                 chainId: Byte,
+  def selfSigned(chainId: Byte,
                  sender: PrivateKeyAccount,
                  name: Array[Byte],
                  description: Array[Byte],

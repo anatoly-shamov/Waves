@@ -3,7 +3,9 @@ package scorex.api.http.leasing
 import io.swagger.annotations.ApiModelProperty
 import play.api.libs.json.{Format, Json}
 
-case class LeaseCancelRequest(@ApiModelProperty(value = "Base58 encoded sender public key", required = true)
+case class LeaseCancelRequest(@ApiModelProperty(value = "Version")
+                              version: Option[Byte],
+                              @ApiModelProperty(value = "Base58 encoded sender public key", required = true)
                               sender: String,
                               @ApiModelProperty(value = "Base58 encoded lease transaction id", required = true)
                               txId: String,

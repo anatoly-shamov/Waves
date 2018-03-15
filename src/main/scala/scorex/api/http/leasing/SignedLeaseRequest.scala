@@ -8,7 +8,9 @@ import scorex.transaction.TransactionParser.SignatureStringLength
 import scorex.transaction.ValidationError
 import scorex.transaction.lease.LeaseTransaction
 
-case class SignedLeaseRequest(@ApiModelProperty(value = "Base58 encoded sender public key", required = true)
+case class SignedLeaseRequest(@ApiModelProperty(value = "Version")
+                              version: Option[Byte],
+                              @ApiModelProperty(value = "Base58 encoded sender public key", required = true)
                               senderPublicKey: String,
                               @ApiModelProperty(required = true)
                               amount: Long,

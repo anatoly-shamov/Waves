@@ -18,9 +18,9 @@ case class LeaseCancelTransaction private(sender: PublicKeyAccount,
                                           signature: ByteStr)
   extends SignedTransaction with FastHashId {
 
-  override val transactionType: TransactionType.Value = TransactionType.LeaseCancelTransaction
+  override val builder: TransactionBuilder = LeaseCancelTransaction
 
-  val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(transactionType.id.toByte),
+  val bodyBytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(builder.typeId),
     sender.publicKey,
     Longs.toByteArray(fee),
     Longs.toByteArray(timestamp),
@@ -37,7 +37,11 @@ case class LeaseCancelTransaction private(sender: PublicKeyAccount,
 
 }
 
-object LeaseCancelTransaction {
+object LeaseCancelTransaction extends TransactionBuilder {
+
+  override type TransactionT = LeaseCancelTransaction
+  override val typeId: Byte = 9
+  override val version: Byte = 1
 
   def parseTail(bytes: Array[Byte]): Try[LeaseCancelTransaction] = Try {
     val sender = PublicKeyAccount(bytes.slice(0, KeyLength))

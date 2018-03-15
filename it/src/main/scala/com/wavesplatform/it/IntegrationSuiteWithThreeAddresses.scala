@@ -55,7 +55,7 @@ trait IntegrationSuiteWithThreeAddresses extends BeforeAndAfterAll with Matchers
     }
 
     def makeTransfers(accounts: Seq[String]): Future[Seq[String]] = traverse(accounts) { acc =>
-      sender.transfer(sender.address, acc, defaultBalance, sender.fee(TransactionType.TransferTransaction)).map(_.id)
+      sender.transfer(sender.address, acc, defaultBalance, sender.fee(TransactionType.TransferTransactionV1)).map(_.id)
     }
 
     val correctStartBalancesFuture = for {
