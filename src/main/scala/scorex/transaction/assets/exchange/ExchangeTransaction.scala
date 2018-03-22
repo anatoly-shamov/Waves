@@ -102,7 +102,7 @@ object ExchangeTransaction extends TransactionBuilder {
     }
   }
 
-  def parseBytes(bytes: Array[Byte]): Try[ExchangeTransaction] = Try {
+  override def parseBytes(bytes: Array[Byte]): Try[ExchangeTransaction] = Try {
     require(bytes.head == typeId)
     parseTail(bytes.tail).get
   }

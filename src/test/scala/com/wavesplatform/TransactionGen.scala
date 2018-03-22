@@ -470,6 +470,6 @@ trait TransactionGen extends BeforeAndAfterAll with ScriptGen {
 
     } yield
       SmartIssueTransaction
-        .selfSigned(1, AddressScheme.current.chainId, sender, assetName, description, quantity, decimals, reissuable, script, fee, timestamp)
+        .selfSigned(AddressScheme.current.chainId, sender, assetName, description, quantity, decimals, reissuable, script, fee, timestamp)
         .explicitGet()
 }

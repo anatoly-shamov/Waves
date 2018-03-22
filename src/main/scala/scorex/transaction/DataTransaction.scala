@@ -67,7 +67,7 @@ object DataTransaction extends TransactionBuilder {
     val feeAmount = Longs.fromByteArray(bytes.drop(p1 + 8))
     val txEi = for {
       proofs <- Proofs.fromBytes(bytes.drop(p1 + 16))
-      tx <- create(version, sender, entries, feeAmount, timestamp, proofs)
+      tx <- create(sender, entries, feeAmount, timestamp, proofs)
     } yield tx
     txEi.fold(left => Failure(new Exception(left.toString)), right => Success(right))
   }.flatten

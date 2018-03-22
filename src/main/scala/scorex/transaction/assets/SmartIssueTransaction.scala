@@ -7,7 +7,7 @@ import monix.eval.Coeval
 import play.api.libs.json.Json
 import scorex.account.{AddressScheme, PrivateKeyAccount, PublicKeyAccount}
 import scorex.serialization.Deser
-import scorex.transaction.ValidationError.{GenericError, UnsupportedVersion}
+import scorex.transaction.ValidationError.GenericError
 import scorex.transaction.smart.Script
 import scorex.transaction._
 
@@ -86,7 +86,7 @@ object SmartIssueTransaction extends TransactionBuilder {
         proofs <- Proofs.fromBytes(bytes.drop(scriptEnd + 16))
         script <- scriptEiOpt
         tx <- SmartIssueTransaction
-          .create(version, chainId, sender, assetName, description, quantity, decimals, reissuable, script, fee, timestamp, proofs)
+          .create(chainId, sender, assetName, description, quantity, decimals, reissuable, script, fee, timestamp, proofs)
       } yield tx).left.map(e => new Throwable(e.toString)).toTry
 
     }.flatten
@@ -103,7 +103,6 @@ object SmartIssueTransaction extends TransactionBuilder {
              timestamp: Long,
              proofs: Proofs): Either[ValidationError, SmartIssueTransaction] =
     for {
-      _ <- Either.cond(version == 1, (), UnsupportedVersion(version))
       _ <- Either.cond(chainId == networkByte, (), GenericError(s"Wrong chainId ${chainId.toInt}"))
       _ <- IssueTransaction.validateIssueParams(name, description, quantity, decimals, reissuable, fee)
     } yield SmartIssueTransaction(chainId, sender, name, description, quantity, decimals, reissuable, script, fee, timestamp, proofs)
@@ -119,7 +118,7 @@ object SmartIssueTransaction extends TransactionBuilder {
                  fee: Long,
                  timestamp: Long): Either[ValidationError, SmartIssueTransaction] =
     for {
-      unverified <- create(version, chainId, sender, name, description, quantity, decimals, reissuable, script, fee, timestamp, Proofs.empty)
+      unverified <- create(chainId, sender, name, description, quantity, decimals, reissuable, script, fee, timestamp, Proofs.empty)
       proofs     <- Proofs.create(Seq(ByteStr(crypto.sign(sender, unverified.bodyBytes()))))
     } yield unverified.copy(proofs = proofs)
 }

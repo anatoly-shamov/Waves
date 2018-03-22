@@ -46,8 +46,7 @@ case class SignedTransferRequest(@ApiModelProperty(value = "Version")
                                  @ApiModelProperty(value = "Base58 encoded attachment")
                                  attachment: Option[String],
                                  @ApiModelProperty(required = true)
-                                 signature: String)
-  extends BroadcastRequest {
+                                 signature: String) extends BroadcastRequest {
   def toTx: Either[ValidationError, TransferTransaction] =
     for {
       _sender <- PublicKeyAccount.fromBase58String(senderPublicKey)

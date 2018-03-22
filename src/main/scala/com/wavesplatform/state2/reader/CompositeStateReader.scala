@@ -3,6 +3,7 @@ package com.wavesplatform.state2.reader
 import cats.implicits._
 import com.wavesplatform.state2._
 import scorex.account.{Address, Alias}
+import scorex.transaction.Transaction
 import scorex.transaction.assets.{IssueTransaction, SmartIssueTransaction}
 import scorex.transaction.lease.LeaseTransaction
 import scorex.transaction.smart.Script

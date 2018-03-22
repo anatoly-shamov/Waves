@@ -6,7 +6,6 @@ import cats.Show
 import com.wavesplatform.generator.NarrowTransactionGenerator.Settings
 import org.slf4j.LoggerFactory
 import scorex.account.{Alias, PrivateKeyAccount}
-import scorex.transaction.TransactionParser.TransactionType
 import scorex.transaction.assets.MassTransferTransaction.ParsedTransfer
 import scorex.transaction.assets._
 import scorex.transaction.assets.exchange.{AssetPair, ExchangeTransaction, Order}

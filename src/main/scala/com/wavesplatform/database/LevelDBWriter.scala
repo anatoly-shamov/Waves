@@ -11,6 +11,7 @@ import com.wavesplatform.state2._
 import com.wavesplatform.state2.reader.LeaseDetails
 import org.iq80.leveldb.{DB, ReadOptions}
 import scorex.account.{Address, Alias}
+import scorex.api.http.assets.SignedMassTransferRequest
 import scorex.block.{Block, BlockHeader}
 import scorex.serialization.Deser
 import scorex.transaction._
