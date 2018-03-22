@@ -40,9 +40,8 @@ case class LeaseTransaction private(sender: PublicKeyAccount,
 
 }
 
-object LeaseTransaction extends TransactionBuilder {
+object LeaseTransaction extends TransactionBuilderT[LeaseTransaction] {
 
-  override type TransactionT = LeaseTransaction
   override val typeId: Byte = 8
   override val version: Byte = 1
 

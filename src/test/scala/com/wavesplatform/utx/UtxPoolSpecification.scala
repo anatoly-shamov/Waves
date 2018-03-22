@@ -33,10 +33,8 @@ class UtxPoolSpecification extends FreeSpec
   ).map(_.typeId.toInt -> List(FeeSettings("", 0))).toMap)
 
   private val calculator = new FeeCalculator(calculatorSettings)
-  throw new RuntimeException(s"$calculatorSettings")
 
   private def mkState(senderAccount: Address, senderBalance: Long) = {
-
     val config = ConfigFactory.load()
     val genesisSettings = TestHelpers.genesisSettings(Map(senderAccount -> senderBalance))
     val settings = WavesSettings.fromConfig(config).copy(

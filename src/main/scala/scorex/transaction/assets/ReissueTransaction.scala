@@ -40,9 +40,8 @@ case class ReissueTransaction private(sender: PublicKeyAccount,
   override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(builder.typeId), signature.arr, bodyBytes()))
 }
 
-object ReissueTransaction extends TransactionBuilder {
+object ReissueTransaction extends TransactionBuilderT[ReissueTransaction] {
 
-  override type TransactionT = ReissueTransaction
   override val typeId: Byte  = 5
   override val version: Byte = 1
 

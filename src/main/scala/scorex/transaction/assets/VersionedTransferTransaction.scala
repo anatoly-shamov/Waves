@@ -33,7 +33,8 @@ case class VersionedTransferTransaction private(sender: PublicKeyAccount,
     val amountBytes = Longs.toByteArray(amount)
     val feeBytes = Longs.toByteArray(fee)
 
-    Bytes.concat(Array(builder.version),
+    Bytes.concat(
+      Array(builder.typeId, builder.version),
       sender.publicKey,
       assetIdBytes,
       timestampBytes,
@@ -56,14 +57,15 @@ case class VersionedTransferTransaction private(sender: PublicKeyAccount,
 }
 
 
-object VersionedTransferTransaction extends TransactionBuilder {
+object VersionedTransferTransaction extends TransactionBuilderT[VersionedTransferTransaction] {
 
-  override type TransactionT = VersionedTransferTransaction
   override val typeId: Byte = 4
   override val version: Byte = 2
 
   def parseTail(bytes: Array[Byte]): Try[VersionedTransferTransaction] = Try {
-    val version = bytes(0)
+    val parsedVersion = bytes(0)
+    if (parsedVersion != version) throw new IllegalArgumentException(s"Invalid version '$parsedVersion', expected '$version'")
+
     val sender = PublicKeyAccount(bytes.slice(1, KeyLength + 1))
     val (assetIdOpt, s0) = Deser.parseByteArrayOption(bytes, KeyLength + 1, AssetIdLength)
     val timestamp = Longs.fromByteArray(bytes.slice(s0, s0 + 8))

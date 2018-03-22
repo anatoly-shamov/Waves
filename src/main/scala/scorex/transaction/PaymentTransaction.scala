@@ -38,9 +38,8 @@ case class PaymentTransaction private(sender: PublicKeyAccount,
 
 }
 
-object PaymentTransaction extends TransactionBuilder {
+object PaymentTransaction extends TransactionBuilderT[PaymentTransaction] {
 
-  override type TransactionT = PaymentTransaction
   override val typeId: Byte = 2
   override val version: Byte = 1
 

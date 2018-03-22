@@ -50,9 +50,8 @@ case class ExchangeTransaction private(buyOrder: Order,
   override val signedDescendants: Coeval[Seq[Order]] = Coeval.evalOnce(Seq(buyOrder, sellOrder))
 }
 
-object ExchangeTransaction extends TransactionBuilder {
+object ExchangeTransaction extends TransactionBuilderT[ExchangeTransaction] {
 
-  override type TransactionT = ExchangeTransaction
   override val typeId: Byte = 7
   override val version: Byte = 1
 

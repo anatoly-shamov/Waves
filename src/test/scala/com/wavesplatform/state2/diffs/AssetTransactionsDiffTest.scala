@@ -115,7 +115,7 @@ class AssetTransactionsDiffTest extends PropSpec with PropertyChecks with Matche
       reissuable = true
       (_, assetName, description, quantity, decimals, _, _, _) <- issueParamGen
       issue = SmartIssueTransaction
-        .selfSigned(1,
+        .selfSigned(
                 AddressScheme.current.chainId,
                 accountA,
                 assetName,

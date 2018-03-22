@@ -64,9 +64,8 @@ case class MassTransferTransaction private(assetId: Option[AssetId],
   override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(bodyBytes(), proofs.bytes()))
 }
 
-object MassTransferTransaction extends TransactionBuilder {
+object MassTransferTransaction extends TransactionBuilderT[MassTransferTransaction] {
 
-  override type TransactionT = MassTransferTransaction
   override val typeId: Byte  = 11
   override val version: Byte = 1
 
@@ -79,7 +78,8 @@ object MassTransferTransaction extends TransactionBuilder {
   implicit val transferFormat: Format[Transfer] = Json.format
 
   def parseTail(bytes: Array[Byte]): Try[MassTransferTransaction] = Try {
-    val version = bytes(0) // @TODO check version
+    val parsedVersion = bytes(0)
+    if (parsedVersion != version) throw new IllegalArgumentException(s"Invalid version '$parsedVersion', expected '$version'")
 
     val sender = PublicKeyAccount(bytes.slice(1, KeyLength + 1))
     val (assetIdOpt, s0) = Deser.parseByteArrayOption(bytes, KeyLength + 1, AssetIdLength)

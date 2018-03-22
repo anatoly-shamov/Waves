@@ -43,9 +43,8 @@ case class BurnTransaction private(sender: PublicKeyAccount,
 }
 
 
-object BurnTransaction extends TransactionBuilder {
+object BurnTransaction extends TransactionBuilderT[BurnTransaction] {
 
-  override type TransactionT = BurnTransaction
   override val typeId: Byte = 6
   override val version: Byte = 1
 

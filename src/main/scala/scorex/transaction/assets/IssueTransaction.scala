@@ -57,9 +57,8 @@ case class IssueTransaction private (sender: PublicKeyAccount,
 
 }
 
-object IssueTransaction extends TransactionBuilder {
+object IssueTransaction extends TransactionBuilderT[IssueTransaction] {
 
-  override type TransactionT = IssueTransaction
   override val typeId: Byte  = 3
   override val version: Byte = 1
 

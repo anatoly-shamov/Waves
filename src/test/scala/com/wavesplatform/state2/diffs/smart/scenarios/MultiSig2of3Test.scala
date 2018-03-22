@@ -52,7 +52,7 @@ class MultiSig2of3Test extends PropSpec with PropertyChecks with Matchers with T
   } yield {
     val unsigned =
       VersionedTransferTransaction
-        .create(2, None, master, recepient, amount, timestamp, fee, Array.emptyByteArray, proofs = Proofs.empty)
+        .create(None, master, recepient, amount, timestamp, fee, Array.emptyByteArray, proofs = Proofs.empty)
         .explicitGet()
     val sig0 = ByteStr(crypto.sign(s0, unsigned.bodyBytes()))
     val sig1 = ByteStr(crypto.sign(s1, unsigned.bodyBytes()))

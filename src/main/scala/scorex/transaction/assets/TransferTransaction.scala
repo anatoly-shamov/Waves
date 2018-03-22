@@ -59,9 +59,8 @@ case class TransferTransaction private(assetId: Option[AssetId],
 
 }
 
-object TransferTransaction extends TransactionBuilder {
+object TransferTransaction extends TransactionBuilderT[TransferTransaction] {
 
-  override type TransactionT = TransferTransaction
   override val typeId: Byte = 4
   override val version: Byte = 1
 

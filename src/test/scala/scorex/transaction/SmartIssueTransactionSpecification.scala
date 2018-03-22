@@ -10,7 +10,7 @@ class SmartIssueTransactionSpecification extends PropSpec with PropertyChecks wi
 
   property("SmartIssueTransaction serialization roundtrip") {
     forAll(smartIssueTransactionGen()) { tx: SmartIssueTransaction =>
-      require(tx.bytes().head == SmartIssueTransaction)
+      require(tx.bytes().head == SmartIssueTransaction.typeId)
       val recovered = SmartIssueTransaction.parseTail(tx.bytes().tail).get
 
       tx.sender.address shouldEqual recovered.sender.address

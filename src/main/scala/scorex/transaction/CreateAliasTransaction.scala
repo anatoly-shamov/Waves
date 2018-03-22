@@ -39,9 +39,8 @@ case class CreateAliasTransaction private(sender: PublicKeyAccount,
 
 }
 
-object CreateAliasTransaction extends TransactionBuilder {
+object CreateAliasTransaction extends TransactionBuilderT[CreateAliasTransaction] {
 
-  override type TransactionT = CreateAliasTransaction
   override val typeId: Byte = 10
   override val version: Byte = 1
 

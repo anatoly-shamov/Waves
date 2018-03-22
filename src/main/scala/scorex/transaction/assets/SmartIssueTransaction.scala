@@ -49,9 +49,8 @@ case class SmartIssueTransaction private (chainId: Byte,
   override val bytes: Coeval[Array[Byte]]  = Coeval.evalOnce(Bytes.concat(Array(builder.typeId), bodyBytes(), proofs.bytes()))
 }
 
-object SmartIssueTransaction extends TransactionBuilder {
+object SmartIssueTransaction extends TransactionBuilderT[SmartIssueTransaction] {
 
-  override type TransactionT = SmartIssueTransaction
   override val typeId: Byte  = 3
   override val version: Byte = 2
 
@@ -64,7 +63,9 @@ object SmartIssueTransaction extends TransactionBuilder {
 
   def parseTail(bytes: Array[Byte]): Try[SmartIssueTransaction] =
     Try {
-      val version                       = bytes(0)
+      val parsedVersion = bytes(0)
+      if (parsedVersion != version) throw new IllegalArgumentException(s"Invalid version '$parsedVersion', expected '$version'")
+
       val chainId                       = bytes(1)
       val sender                        = PublicKeyAccount(bytes.slice(2, TransactionParser.KeyLength + 2))
       val (assetName, descriptionStart) = Deser.parseArraySize(bytes, TransactionParser.KeyLength + 2)

@@ -20,6 +20,8 @@ object FeesSettings {
       fees = fs.map { case (asset, fee) => FeeSettings(asset, fee) }.toSeq
     } yield toTxType(txTypeName) -> fees)
 
-  private def toTxType(key: String): Int =
-    TransactionParser.builderByName(s"${converter.convert(key)}Transaction").get.typeId
+  private def toTxType(key: String): Int = {
+    val name = s"${converter.convert(key)}Transaction"
+    TransactionParser.builderByName(name).getOrElse(throw new RuntimeException(s"Can't find '$name' transaction")).typeId
+  }
 }

@@ -40,9 +40,8 @@ case class GenesisTransaction private(recipient: Address, amount: Long, timestam
 }
 
 
-object GenesisTransaction extends TransactionBuilder {
+object GenesisTransaction extends TransactionBuilderT[GenesisTransaction] {
 
-  override type TransactionT = GenesisTransaction
   override val typeId: Byte = 1
   override val version: Byte = 1
 
@@ -60,7 +59,6 @@ object GenesisTransaction extends TransactionBuilder {
     val h = crypto.fastHash(data)
     Bytes.concat(h, h)
   }
-
 
   def parseTail(data: Array[Byte]): Try[GenesisTransaction] =
     Try {

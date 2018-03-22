@@ -42,9 +42,7 @@ case class DataTransaction private(sender: PublicKeyAccount,
   override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(bodyBytes(), proofs.bytes()))
 }
 
-object DataTransaction extends TransactionBuilder {
-
-  override type TransactionT = DataTransaction
+object DataTransaction extends TransactionBuilderT[DataTransaction] {
 
   override val typeId: Byte = 12
   override val version: Byte = 1
@@ -52,7 +50,9 @@ object DataTransaction extends TransactionBuilder {
   val MaxEntryCount: Byte = Byte.MaxValue
 
   def parseTail(bytes: Array[Byte]): Try[DataTransaction] = Try {
-    val version = bytes(0)
+    val parsedVersion = bytes(0)
+    if (parsedVersion != version) throw new IllegalArgumentException(s"Invalid version '$parsedVersion', expected '$version'")
+
     val p0 = KeyLength + 1
     val sender = PublicKeyAccount(bytes.slice(1, p0))
 

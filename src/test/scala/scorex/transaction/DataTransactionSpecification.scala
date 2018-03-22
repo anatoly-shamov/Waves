@@ -11,12 +11,11 @@ import play.api.libs.json.Json
 import scorex.api.http.SignedDataRequest
 import scorex.crypto.encode.Base58
 import scorex.transaction.DataTransaction._
-import scorex.transaction.TransactionParser.TransactionType
 
 class DataTransactionSpecification extends PropSpec with PropertyChecks with Matchers with TransactionGen {
 
   private def checkSerialization(tx: DataTransaction): Assertion = {
-    require(tx.bytes().head == TransactionType.DataTransaction.id)
+    require(tx.bytes().head == DataTransaction.typeId)
     val parsed = DataTransaction.parseTail(tx.bytes().tail).get
 
     parsed.sender.address shouldEqual tx.sender.address
@@ -84,10 +83,10 @@ class DataTransactionSpecification extends PropSpec with PropertyChecks with Mat
   property("positive validation cases") {
     val keyRepeatCountGen = Gen.choose(2, MaxEntryCount)
     forAll(dataTransactionGen, keyRepeatCountGen) {
-      case (DataTransaction(version, sender, data, fee, timestamp, proofs), keyRepeatCount) =>
+      case (DataTransaction(sender, data, fee, timestamp, proofs), keyRepeatCount) =>
         def check(data: List[DataEntry[_]]): Assertion = {
-          val txEi = create(version, sender, data, fee, timestamp, proofs)
-          txEi shouldBe Right(DataTransaction(version, sender, data, fee, timestamp, proofs))
+          val txEi = create(sender, data, fee, timestamp, proofs)
+          txEi shouldBe Right(DataTransaction(sender, data, fee, timestamp, proofs))
           checkSerialization(txEi.right.get)
         }
 
@@ -102,28 +101,24 @@ class DataTransactionSpecification extends PropSpec with PropertyChecks with Mat
   }
 
   property("negative validation cases") {
-    val badVersionGen = Gen.choose(DataTransaction.Version + 1, Byte.MaxValue).map(_.toByte)
-    forAll(dataTransactionGen, badVersionGen) {
-      case (DataTransaction(version, sender, data, fee, timestamp, proofs), badVersion) =>
-        val badVersionEi = create(badVersion, sender, data, fee, timestamp, proofs)
-        badVersionEi shouldBe Left(ValidationError.UnsupportedVersion(badVersion))
-
+    forAll(dataTransactionGen) {
+      case DataTransaction(sender, data, fee, timestamp, proofs) =>
         val dataTooBig = List.fill(MaxEntryCount + 1)(IntegerDataEntry("key", 4))
-        val dataTooBigEi = create(version, sender, dataTooBig, fee, timestamp, proofs)
+        val dataTooBigEi = create(sender, dataTooBig, fee, timestamp, proofs)
         dataTooBigEi shouldBe Left(ValidationError.TooBigArray)
 
         val keyTooLong = data :+ BinaryDataEntry("a" * (MaxKeySize + 1), Array(1, 2))
-        val keyTooLongEi = create(version, sender, keyTooLong, fee, timestamp, proofs)
+        val keyTooLongEi = create(sender, keyTooLong, fee, timestamp, proofs)
         keyTooLongEi shouldBe Left(ValidationError.TooBigArray)
 
         val valueTooLong = data :+ BinaryDataEntry("key", Array.fill(MaxValueSize + 1)(1: Byte))
-        val valueTooLongEi = create(version, sender, valueTooLong, fee, timestamp, proofs)
+        val valueTooLongEi = create(sender, valueTooLong, fee, timestamp, proofs)
         valueTooLongEi shouldBe Left(ValidationError.TooBigArray)
 
-        val noFeeEi = create(version, sender, data, 0, timestamp, proofs)
+        val noFeeEi = create(sender, data, 0, timestamp, proofs)
         noFeeEi shouldBe Left(ValidationError.InsufficientFee)
 
-        val negativeFeeEi = create(version, sender, data, -100, timestamp, proofs)
+        val negativeFeeEi = create(sender, data, -100, timestamp, proofs)
         negativeFeeEi shouldBe Left(ValidationError.InsufficientFee)
     }
   }

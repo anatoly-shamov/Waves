@@ -38,9 +38,8 @@ case class SetScriptTransaction private(chainId: Byte,
   override val bytes: Coeval[Array[Byte]] = Coeval.evalOnce(Bytes.concat(Array(builder.typeId), bodyBytes(), proofs.bytes()))
 }
 
-object SetScriptTransaction extends TransactionBuilder  {
+object SetScriptTransaction extends TransactionBuilderT[SetScriptTransaction] {
 
-  override type TransactionT = SetScriptTransaction
   override val typeId: Byte = 13
   override val version: Byte = 1
 

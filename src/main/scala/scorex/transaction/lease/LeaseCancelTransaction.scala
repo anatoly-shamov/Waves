@@ -37,9 +37,8 @@ case class LeaseCancelTransaction private(sender: PublicKeyAccount,
 
 }
 
-object LeaseCancelTransaction extends TransactionBuilder {
+object LeaseCancelTransaction extends TransactionBuilderT[LeaseCancelTransaction] {
 
-  override type TransactionT = LeaseCancelTransaction
   override val typeId: Byte = 9
   override val version: Byte = 1
 

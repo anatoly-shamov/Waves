@@ -3,9 +3,9 @@ package scorex.transaction
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
-abstract class TransactionBuilder {
+trait TransactionBuilder {
   type TransactionT <: Transaction
-  implicit val classTag: ClassTag[TransactionT] = implicitly[ClassTag[TransactionT]]
+  def classTag: ClassTag[TransactionT]
 
   def typeId: Byte
   def version: Byte
@@ -18,4 +18,8 @@ abstract class TransactionBuilder {
       if (headByte == typeId) parseTail(bytes.tail)
       else Failure(new IllegalArgumentException(s"An unexpected head byte '$headByte', expected '$typeId'"))
     }
+}
+
+abstract class TransactionBuilderT[T <: Transaction](implicit override val classTag: ClassTag[T]) extends TransactionBuilder {
+  override type TransactionT = T
 }
